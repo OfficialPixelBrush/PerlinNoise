@@ -1,0 +1,1 @@
+gcc main.c -operlin -lSDL2 -lSDL2main -O2
