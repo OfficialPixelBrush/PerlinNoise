@@ -46,7 +46,7 @@ typedef struct {
 /*
 This pseudoranom algorithm will use the XOR-Shift algorithm
 */
-int pseudoRandom(int input, int max) {
+float pseudoRandom(int input, int precision) {
 	//printf("%X -> ", input);
 	int seed = 1593247432508327425 % (maxInt);
 	int sampleBit = 27; // Sample nth bit
@@ -64,10 +64,9 @@ int pseudoRandom(int input, int max) {
 		result &= ~(1 << (sizeof(int)*8-1));
 		result = result | xorResult;
 	}
-	result = abs(result % max);
 	//printf("%d: %d\n", input, result);
 	//printf("%X\n", result);
-	return result;
+	return ((float)abs(result % precision))/((float)precision);;
 }
 
 // Definitely a bad approach!
@@ -200,8 +199,10 @@ int WinMain() {
 		for (y = 0; y < maxY; y++) {
 			for (x = 0; x < maxX; x++) {
 				int2 currentPoint;
-				currentPoint.x = x/16;
-				currentPoint.y = y/16;
+				currentPoint.x = x+t;
+				currentPoint.y = y+t;
+				float pseudoRandomVar = pseudoRandom(getPositionInt2(currentPoint), 1000);
+				float heat = perlin((float)(x+t)/10, (float)(y+t)/10);
 				/*
 				// Get Vector from -1 to 1
 				float direction = (pseudoRandom(getPosition(currentPoint),2000)-1000)/1000;
@@ -209,18 +210,40 @@ int WinMain() {
 				int color = getDistance(currentPoint, currentPoint);
 				*/
 				color c;
-				float height = (((float)pseudoRandom(getPositionInt2(currentPoint),1000))/1000.0f);
-				height *= 255;
-				if (height < 128) {
+				float height = perlin((float)(x+t)/4, (float)(y+t)/4)/2;
+				height += perlin((float)(x+t), (float)(y+t))/2;
+				//height += cos(perlin((float)(x+t), (float)(y+t)))/2;
+				//height += sin(perlin((float)(x+t)*4, (float)(y+t)*4))/8;
+				
+				//(((float)pseudoRandom(getPositionInt2(currentPoint),1000))/1000.0f);
+				if (height < 0.5) {
 					c.r = 0.1;
 					c.g = 0.1;
 					c.b = 1.0;
 				} else {
-					c.r = 0.3;
-					c.g = 1.0;
-					c.b = 0.1;
+					if (heat < 0.45) {
+						// Cold
+						c.r = 1.0;
+						c.g = 1.0;
+						c.b = 1.0;
+					} else if ((heat > 0.45) && (heat < 0.6)) {
+						if (height < 0.8) {
+							// Neutral
+							c.r = 0.3;
+							c.g = 1.0;
+							c.b = 0.1;
+						} else {
+							c.r = 0.8f;
+							c.g = 0.8f;
+							c.b = 0.8f;
+						}
+					} else {
+						// Hot
+						c.r = 1.0;
+						c.g = 0.9;
+						c.b = 0.1;
+					}
 				}
-				height /= 255.0;
 				c.r *= height;
 				c.g *= height;
 				c.b *= height;
@@ -229,7 +252,7 @@ int WinMain() {
 				//printf("%d,%d: %d\n", x,y,pseudoRandom(getPosition(x,y), 100));
 			}
 		}
-		SDL_Delay(16);
+		//SDL_Delay(16);
 		SDL_RenderPresent(renderer);
 		t+=5;
         // Process events
